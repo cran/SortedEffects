@@ -11,7 +11,7 @@
 
 <meta name="author" content="Shuowen Chen" />
 
-<meta name="date" content="2019-04-16" />
+<meta name="date" content="2019-11-04" />
 
 <title>Sorted Effects</title>
 
@@ -309,15 +309,12 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">Sorted Effects</h1>
 <h4 class="author"><em>Shuowen Chen</em></h4>
-<h4 class="date"><em>2019-04-16</em></h4>
+<h4 class="date"><em>2019-11-04</em></h4>
 
 </div>
 
 
-<p>The R package <strong>SortedEffects</strong> implements econometric methods in Chernozhukov, Fernandez-Val and Luo (2018) and reports <em>sorted partial effects</em>, a collection of estimated partial effects sorted in increasing order and indexed by percentiles. In contrast to the classical average partial effect, sorted effect curves completely represent range of heterogeneous partial effects, which are common in nonlinear predictive models. The package further allows users to conduct classification analysis with sorted effects and visualize the results. You can install the current version of with:</p>
-<pre class="r"><code>install.packages(&quot;devtools&quot;)
-devtools::install_github(&quot;shuowencs/SortedEffects&quot;)</code></pre>
-<p>This repository hosts the (commented) source code, data, and the vignette for the R Journal submission. For more theoretical details, please refer to the original paper: <a href="https://arxiv.org/abs/1512.05635" class="uri">https://arxiv.org/abs/1512.05635</a>.</p>
+<p>The R package <strong>SortedEffects</strong> implements econometric methods in Chernozhukov, Fernandez-Val and Luo (2018) and reports <em>sorted partial effects</em>, a collection of estimated partial effects sorted in increasing order and indexed by percentiles. In contrast to the classical average partial effect, sorted effect curves completely represent range of heterogeneous partial effects, which are common in nonlinear predictive models. The package further allows users to conduct classification analysis with sorted effects and visualize the results. For more theoretical details, please refer to the original paper: <a href="https://arxiv.org/abs/1512.05635" class="uri">https://arxiv.org/abs/1512.05635</a>. For a detailed description of the package commands, refer to <a href="https://arxiv.org/abs/1909.00836" class="uri">https://arxiv.org/abs/1909.00836</a>.</p>
 <p>This document is structured to answer three curiosity-sparked questions:</p>
 <ul>
 <li>What do you mean by (heterogeneous) partial effects and classification analysis?</li>
@@ -343,42 +340,27 @@ devtools::install_github(&quot;shuowencs/SortedEffects&quot;)</code></pre>
 <p>We estimate a binary response model where the outcome variable <span class="math inline">\(Y\)</span> is an indicator for mortgage denial, the key covariate <span class="math inline">\(T\)</span> is an indicator for the applicant being black, and the controls <span class="math inline">\(W\)</span> contain financial and other characteristics of the applicant that banks take into account in the mortgage decisions. The regression formula is specified as</p>
 <pre class="r"><code>fm &lt;- deny ~ black + p_irat + hse_inc + ccred + mcred + pubrec + ltv_med + ltv_high + denpmi + selfemp + single + hischl</code></pre>
 <p>We use <code>SPE</code> command to estimate SPE and APE.</p>
-<pre class="r"><code>ex &lt;- SPE(fm = fm, data = mortgage, var.T = &quot;black&quot;, method = &quot;probit&quot;, us = c(2:98)/100, B = 200)</code></pre>
-<p>In this line of code, <code>var.T = &quot;black&quot;</code> tells the package that <span class="math inline">\(T\)</span> is <code>black</code>, while <code>us</code> specifies the SPE quantile index to range from 2% to 98%. <code>B</code> refers to the number of bootstrap for inference. For accuracy we recommend setting <code>B</code> to be 500. The result <code>ex</code> is a list containing SPE and APE with corresponding confidence bands, and for visualization we can use the <code>plot.SPE</code> command as follows:</p>
-<pre class="r"><code>plot.SPE(SE=ex$spe, AE=ex$ape, us=c(2:98)/100, alpha=0.1, main=&quot;APE and SPE of Being Black on the prob of Mortgage Denial&quot;, sub=&quot;Probit Model&quot;, ylab=&quot;Change in Probability&quot;)</code></pre>
+<pre class="r"><code>test &lt;- spe(fm = fm, data = mortgage, var = &quot;black&quot;, method = &quot;logit&quot;,
+            us = c(2:98)/100, b = 200, bc = TRUE)</code></pre>
+<p>In this line of code, <code>var = &quot;black&quot;</code> tells the package that <span class="math inline">\(T\)</span> is <code>black</code>, while <code>us</code> specifies the SPE quantile index to range from 2% to 98%. <code>b</code> refers to the number of bootstrap for inference. For accuracy we recommend setting <code>b</code> to be 500. The result <code>test</code> is a list containing SPE and APE with corresponding confidence bands, and for visualization we can use the <code>plot</code> command as follows:</p>
+<pre class="r"><code>plot(x = test, ylim = c(0, 0.25), ylab = &quot;Change in Probability&quot;,
+     main = &quot;APE and SPE of Being Black on the prob of Mortgage Denial&quot;,
+     sub = &quot;Logit Model&quot;)</code></pre>
 <p>We see that the SPE ranges from 2% to 14% while APE is 6%. It’s clear that reporting APE masks rich heterogeneity of the partial effects.</p>
 <p>Now that we know being black affects mortgage denial probability differently among applicants, we can ask a follow-up question: what are the average characteristics of most and least affected applicants? Such questions are referred to as <strong>classification analysis</strong>: first classify observational units into most/least affected groups and then study objects of interest like mean and distributions.</p>
-<p>To conduct estimation and inference on classification analysis, we use the <code>u.CA</code> command. We first choose the characteristics in interest: Deny, Black, Debt-to-income, Expenses-to-income, Bad consumer credit, Bad mortgage credit, Credit problems, Denied mortgage insurance, Medium loan-to-house, High loan-to-house, Self employed, Single and High school grad. The corresponding specification is</p>
-<pre class="r"><code>t &lt;- c(rep(1, 4), 0, rep(1, 7), 0, 0, 1, 1)</code></pre>
+<p>To conduct estimation and inference on classification analysis, we use the <code>ca</code> command. We first choose the characteristics in interest: Deny, Black, Debt-to-income, Expenses-to-income, Bad consumer credit, Bad mortgage credit, Credit problems, Denied mortgage insurance, Medium loan-to-house, High loan-to-house, Self employed, Single and High school grad. The corresponding specification is</p>
+<pre class="r"><code>t &lt;- c(&quot;deny&quot;, &quot;p_irat&quot;, &quot;black&quot;, &quot;hse_inc&quot;, &quot;ccred&quot;, &quot;mcred&quot;, &quot;pubrec&quot;,
+       &quot;denpmi&quot;, &quot;selfemp&quot;, &quot;single&quot;, &quot;hischl&quot;, &quot;ltv_med&quot;, &quot;ltv_high&quot;)</code></pre>
 <p>Then we issue to <code>u.CA</code> command:</p>
-<pre class="r"><code>CA &lt;- u.CA(fm=fm, data=mortgage, var.T=&quot;black&quot;, method=&quot;probit&quot;,
-           cl=matrix(c(1,0,0,1), nrow=2), t=t, B=200)</code></pre>
-<p>The specification <code>cl=matrix(c(1,0,0,1), nrow=2)</code> means we tabulate the mean of the characteristics for two groups. The result <code>CA</code> is a list containing the estimate, standard errors and joint p-values. We can tabulate the result as follows:</p>
-<pre class="r"><code>est &lt;- matrix(CA$est, ncol=2)
-se &lt;- matrix(CA$bse, ncol=2)
-Table &lt;- matrix(0, ncol=4, nrow=13)
-Table[, 1] &lt;- est[, 1] # Least Affected Bias-corrected estimate
-Table[, 2] &lt;- se[, 1] # Corresponding SE
-Table[, 3] &lt;- est[, 2] # Most affected
-Table[, 4] &lt;- se[, 2] # Corresponding SE
-rownames(Table) &lt;- colnames(CA$est)[1:13] # assign names to each row
-colnames(Table) &lt;- rep(c(&quot;Estimate&quot;, &quot;SE&quot;), 2)
-xtable(Table)</code></pre>
+<pre class="r"><code>CA &lt;- ca(fm = fm, data = mortgage, var = &quot;black&quot;, method = &quot;logit&quot;,
+         cl = &quot;both&quot;, t = t, b = 200, bc = TRUE)</code></pre>
+<p>The specification <code>cl=both</code> means we tabulate the mean of the characteristics for two groups. The result <code>ca</code> is a list containing the estimate, standard errors and joint p-values. We can tabulate the result as follows:</p>
+<pre class="r"><code>summary(CA)</code></pre>
 <p>We can see that the characteristics are different for these two groups. Now we test if the characteristics are different statistically significantly.</p>
-<pre class="r"><code>CAdiff &lt;- u.CA(fm = fm, data = mortgage, var.T = &quot;black&quot;, t = t,
-               method = &quot;logit&quot;, cl = matrix(c(1,-1), nrow=2),
-               B = 200, bc = FALSE)
+<pre class="r"><code>CAdiff &lt;- ca(fm = fm, data = mortgage, var = &quot;black&quot;, t = t,
+             method = &quot;logit&quot;, cl = &quot;diff&quot;, b = 200, bc = TRUE)
 # Tabulate the results
-est &lt;- matrix(CAdiff$est, ncol = 1)
-se &lt;- matrix(CAdiff$bse, ncol = 1)
-joint_p &lt;- matrix(CAdiff$joint_p, ncol = 1)
-Table2 &lt;- matrix(0, ncol = 3, nrow = 13)
-Table2[, 1] &lt;- est
-Table2[, 2] &lt;- se
-Table2[, 3] &lt;- joint_p
-rownames(Table2) &lt;- colnames(CAdiff$est) # assign names to each row
-colnames(Table2) &lt;- c(&quot;Estimate&quot;, &quot;SE&quot;, &quot;JP-vals&quot;)
-xtable(Table2)</code></pre>
+summary(CAdiff)</code></pre>
 <p>The p-values are adjusted to account for simultaneous inference on all 10 variables.</p>
 </div>
 <div id="example-2-gender-wage-gap-set-inference" class="section level2">
@@ -391,23 +373,21 @@ fmla1 &lt;- lnw ~ female* (widowed + divorced + separated + nevermarried +
                         exp1 + exp2 + exp3 + exp4 + educ + occ2 + ind2 +
                         mw + so + we)</code></pre>
 <p>We consider the OLS method and use  command to plot the 90% confidence sets for the 10% most and least affected subpopulations by weighted bootstrap and 500 repetitions. Note the two graphs essentially replicate Figure 5 as in Chernozhukov, Fern{&#39;a}ndez-Val and Luo (2018).</p>
-<pre class="r"><code>set &lt;- u.Subpop(fm = fmla1, data = wage2015, var.T = &quot;female&quot;,
-                samp_weight = wage2015$weight, boot.type = &quot;weighted&quot;,
-                B = 200, seed = 88)
+<pre class="r"><code>set &lt;- subpop(fm = fmla0, data = wage2015, var = &quot;female&quot;,
+              samp_weight = wage2015$weight, boot_type = &quot;weighted&quot;,
+              b = 500, subgroup = wage2015[,&quot;female&quot;]==1, u = 0.05)
 
-Subpopplot(varx = &quot;exp1&quot;, vary = &quot;lnw&quot;, data = wage2015, u = 0.1,
-           interest = &quot;subgroup&quot;, subgroup = wage2015[, &quot;female&quot;]==1,
-           result = set, main = &quot;Projections of Exp-lnw&quot;, sub = &quot;OLS&quot;,
-           xlab = &quot;Exp&quot;, ylab = &quot;Log Wages&quot;)
+plot(set, varx = wage2015$exp1, vary = wage2015$lnw,
+     main = &quot;Projections of Exp-lnw&quot;, sub = &quot;OLS&quot;, xlab = &quot;Exp&quot;,
+     ylab = &quot;Log Wages&quot;)
 
-Subpopplot(varx = &quot;exp1&quot;, vary = &quot;ms&quot;, data = wage2015, u = 0.1,
-           interest= &quot;subgroup&quot;, subgroup = wage2015[, &quot;female&quot;]==1,
-           result = set, main = &quot;Projections of Exp-MS&quot;, sub = &quot;OLS&quot;,
-           xlab = &quot;Experience&quot;, ylab = &quot;Marital Status&quot;)</code></pre>
+plot(set, varx = wage2015$exp1, vary =wage2015$ms,
+     main = &quot;Projections of Exp-MS&quot;, sub = &quot;OLS&quot;, xlab = &quot;Exp&quot;,
+     ylab = &quot;Marital Status&quot;)</code></pre>
 </div>
 <div id="acknowledgement" class="section level2">
 <h2>Acknowledgement</h2>
-<p>This project would have been infeasible without guidance and helps from many sources. I thank my advisor Ivan Fernandez-Val for offering me this package-building opportunity and providing constant feedback. I thank Jean-Jacques Forneron and Katia Oleinik for coding suggestions. I thank Hadley Wickham for his two great books <strong>Advanced R</strong> and <strong>R Packages</strong>, and lastly Thomas Leeper for his inspirational R package <strong>margins</strong>.</p>
+<p>This project would have been infeasible without guidance and helps from many sources. We thank Norman Martloff, Thomas Leeper, an anonymous referee, Jean-Jacques Forneron and Katia Oleinik for package and coding suggestions, Hadley Wickham for his two great books <strong>Advanced R</strong> and <strong>R Packages</strong>.</p>
 </div>
 
 

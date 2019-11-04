@@ -4,7 +4,7 @@ author: "Shuowen Chen"
 date: "`r Sys.Date()`"
 output: html_document
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Sorted Effects}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -16,15 +16,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-The R package **SortedEffects** implements econometric methods in Chernozhukov, Fernandez-Val and Luo (2018) and reports *sorted partial effects*, a collection of estimated partial effects sorted in increasing order and indexed by percentiles. In contrast to the classical average partial effect, sorted effect curves completely represent range of heterogeneous partial effects, which are common in nonlinear predictive models. The package further allows users to conduct classification analysis with sorted effects and visualize the results. You can install the current version of with:
-
-```{r, eval = FALSE}
-install.packages("devtools")
-devtools::install_github("shuowencs/SortedEffects")
-```
-
-
-This repository hosts the (commented) source code, data, and the vignette for the R Journal submission. For more theoretical details, please refer to the original paper: https://arxiv.org/abs/1512.05635.
+The R package **SortedEffects** implements econometric methods in Chernozhukov, Fernandez-Val and Luo (2018) and reports *sorted partial effects*, a collection of estimated partial effects sorted in increasing order and indexed by percentiles. In contrast to the classical average partial effect, sorted effect curves completely represent range of heterogeneous partial effects, which are common in nonlinear predictive models. The package further allows users to conduct classification analysis with sorted effects and visualize the results. For more theoretical details, please refer to the original paper: https://arxiv.org/abs/1512.05635. For a detailed description of the package commands, refer to https://arxiv.org/abs/1909.00836. 
 
 This document is structured to answer three curiosity-sparked questions:
 
@@ -74,59 +66,43 @@ fm <- deny ~ black + p_irat + hse_inc + ccred + mcred + pubrec + ltv_med + ltv_h
 
 We use `SPE` command to estimate SPE and APE. 
 ```{r, eval=FALSE}
-ex <- SPE(fm = fm, data = mortgage, var.T = "black", method = "probit", us = c(2:98)/100, B = 200)
+test <- spe(fm = fm, data = mortgage, var = "black", method = "logit",
+            us = c(2:98)/100, b = 200, bc = TRUE)
 ```
 
-In this line of code, `var.T = "black"` tells the package that $T$ is `black`, while `us` specifies the SPE quantile index to range from 2\% to 98\%. `B` refers to the number of bootstrap for inference. For accuracy we recommend setting `B` to be 500. The result `ex` is a list containing SPE and APE with corresponding confidence bands, and for visualization we can use the `plot.SPE` command as follows:
+In this line of code, `var = "black"` tells the package that $T$ is `black`, while `us` specifies the SPE quantile index to range from 2\% to 98\%. `b` refers to the number of bootstrap for inference. For accuracy we recommend setting `b` to be 500. The result `test` is a list containing SPE and APE with corresponding confidence bands, and for visualization we can use the `plot` command as follows:
 ```{r, eval=FALSE}
-plot.SPE(SE=ex$spe, AE=ex$ape, us=c(2:98)/100, alpha=0.1, main="APE and SPE of Being Black on the prob of Mortgage Denial", sub="Probit Model", ylab="Change in Probability")
+plot(x = test, ylim = c(0, 0.25), ylab = "Change in Probability",
+     main = "APE and SPE of Being Black on the prob of Mortgage Denial",
+     sub = "Logit Model")
 ```
-
 
 We see that the SPE ranges from 2\% to 14\% while APE is 6\%. It's clear that reporting APE masks rich heterogeneity of the partial effects. 
 
 Now that we know being black affects mortgage denial probability differently among applicants, we can ask a follow-up question: what are the average characteristics of most and least affected applicants? Such questions are referred to as **classification analysis**: first classify observational units into most/least affected groups and then study objects of interest like mean and distributions. 
 
-To conduct estimation and inference on classification analysis, we use the `u.CA` command. We first choose the characteristics in interest: Deny, Black, Debt-to-income, Expenses-to-income, Bad consumer credit, Bad mortgage credit, Credit problems, Denied mortgage insurance, Medium loan-to-house, High loan-to-house, Self employed, Single and High school grad. The corresponding specification is
+To conduct estimation and inference on classification analysis, we use the `ca` command. We first choose the characteristics in interest: Deny, Black, Debt-to-income, Expenses-to-income, Bad consumer credit, Bad mortgage credit, Credit problems, Denied mortgage insurance, Medium loan-to-house, High loan-to-house, Self employed, Single and High school grad. The corresponding specification is
 ```{r, eval=FALSE}
-t <- c(rep(1, 4), 0, rep(1, 7), 0, 0, 1, 1)
+t <- c("deny", "p_irat", "black", "hse_inc", "ccred", "mcred", "pubrec",
+       "denpmi", "selfemp", "single", "hischl", "ltv_med", "ltv_high")
 ```
 Then we issue to `u.CA` command:
 ```{r, eval=FALSE}
-CA <- u.CA(fm=fm, data=mortgage, var.T="black", method="probit",
-           cl=matrix(c(1,0,0,1), nrow=2), t=t, B=200)
+CA <- ca(fm = fm, data = mortgage, var = "black", method = "logit",
+         cl = "both", t = t, b = 200, bc = TRUE)
 ```
 
-The specification `cl=matrix(c(1,0,0,1), nrow=2)` means we tabulate the mean of the characteristics for two groups. The result `CA` is a list containing the estimate, standard errors and joint p-values. We can tabulate the result as follows:
+The specification `cl=both` means we tabulate the mean of the characteristics for two groups. The result `ca` is a list containing the estimate, standard errors and joint p-values. We can tabulate the result as follows:
 ```{r, eval=FALSE}
-est <- matrix(CA$est, ncol=2)
-se <- matrix(CA$bse, ncol=2)
-Table <- matrix(0, ncol=4, nrow=13)
-Table[, 1] <- est[, 1] # Least Affected Bias-corrected estimate
-Table[, 2] <- se[, 1] # Corresponding SE
-Table[, 3] <- est[, 2] # Most affected
-Table[, 4] <- se[, 2] # Corresponding SE
-rownames(Table) <- colnames(CA$est)[1:13] # assign names to each row
-colnames(Table) <- rep(c("Estimate", "SE"), 2)
-xtable(Table)
+summary(CA)
 ```
 
 We can see that the characteristics are different for these two groups. Now we test if the characteristics are different statistically significantly. 
 ```{r, eval=FALSE}
-CAdiff <- u.CA(fm = fm, data = mortgage, var.T = "black", t = t,
-               method = "logit", cl = matrix(c(1,-1), nrow=2),
-               B = 200, bc = FALSE)
+CAdiff <- ca(fm = fm, data = mortgage, var = "black", t = t,
+             method = "logit", cl = "diff", b = 200, bc = TRUE)
 # Tabulate the results
-est <- matrix(CAdiff$est, ncol = 1)
-se <- matrix(CAdiff$bse, ncol = 1)
-joint_p <- matrix(CAdiff$joint_p, ncol = 1)
-Table2 <- matrix(0, ncol = 3, nrow = 13)
-Table2[, 1] <- est
-Table2[, 2] <- se
-Table2[, 3] <- joint_p
-rownames(Table2) <- colnames(CAdiff$est) # assign names to each row
-colnames(Table2) <- c("Estimate", "SE", "JP-vals")
-xtable(Table2)
+summary(CAdiff)
 ```
 The p-values are adjusted to account for simultaneous inference on all 10 variables. 
 
@@ -144,21 +120,19 @@ fmla1 <- lnw ~ female* (widowed + divorced + separated + nevermarried +
 ```
 We consider the OLS method and use \rt{Subpopplot} command to plot the 90\% confidence sets for the 10\% most and least affected subpopulations by weighted bootstrap and 500 repetitions. Note the two graphs essentially replicate Figure 5 as in Chernozhukov, Fern{\'a}ndez-Val and Luo (2018).
 ```{r, eval=FALSE}
-set <- u.Subpop(fm = fmla1, data = wage2015, var.T = "female",
-                samp_weight = wage2015$weight, boot.type = "weighted",
-                B = 200, seed = 88)
+set <- subpop(fm = fmla0, data = wage2015, var = "female",
+              samp_weight = wage2015$weight, boot_type = "weighted",
+              b = 500, subgroup = wage2015[,"female"]==1, u = 0.05)
 
-Subpopplot(varx = "exp1", vary = "lnw", data = wage2015, u = 0.1,
-           interest = "subgroup", subgroup = wage2015[, "female"]==1,
-           result = set, main = "Projections of Exp-lnw", sub = "OLS",
-           xlab = "Exp", ylab = "Log Wages")
+plot(set, varx = wage2015$exp1, vary = wage2015$lnw,
+     main = "Projections of Exp-lnw", sub = "OLS", xlab = "Exp",
+     ylab = "Log Wages")
 
-Subpopplot(varx = "exp1", vary = "ms", data = wage2015, u = 0.1,
-           interest= "subgroup", subgroup = wage2015[, "female"]==1,
-           result = set, main = "Projections of Exp-MS", sub = "OLS",
-           xlab = "Experience", ylab = "Marital Status")
+plot(set, varx = wage2015$exp1, vary =wage2015$ms,
+     main = "Projections of Exp-MS", sub = "OLS", xlab = "Exp",
+     ylab = "Marital Status")
 ```
 
 ## Acknowledgement
 
-This project would have been infeasible without guidance and helps from many sources. I thank my advisor Ivan Fernandez-Val for offering me this package-building opportunity and providing constant feedback. I thank Jean-Jacques Forneron and Katia Oleinik for coding suggestions. I thank Hadley Wickham for his two great books **Advanced R** and **R Packages**, and lastly Thomas Leeper for his inspirational R package **margins**. 
+This project would have been infeasible without guidance and helps from many sources. We thank Norman Martloff, Thomas Leeper, an anonymous referee, Jean-Jacques Forneron and Katia Oleinik for package and coding suggestions, Hadley Wickham for his two great books **Advanced R** and **R Packages**. 
