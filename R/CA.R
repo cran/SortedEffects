@@ -145,6 +145,8 @@
 #' @importFrom Hmisc wtd.quantile wtd.mean
 #' @importFrom stats quantile rexp qnorm pnorm
 #' @importFrom dummies dummy.data.frame
+#' @importFrom parallel detectCores
+#' @importFrom pbapply setpb startpb closepb
 #' @export
 ca <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
                var_type = c("binary", "continuous", "categorical"), var,

@@ -74,6 +74,8 @@
 #' @importFrom Hmisc wtd.quantile
 #' @importFrom boot boot
 #' @importFrom stats quantile rexp qnorm
+#' @importFrom parallel detectCores
+#' @importFrom pbapply setpb startpb closepb
 #' @export
 subpop <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
                    var_type = c("binary", "continuous", "categorical"),
