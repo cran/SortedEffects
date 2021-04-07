@@ -4,7 +4,8 @@
 \name{mortgage}
 \alias{mortgage}
 \title{Mortgage Denial}
-\format{Contains the data on mortgage application in Boston from 1990,
+\format{
+Contains the data on mortgage application in Boston from 1990,
 (Munnell et al., 1996.)
 We obtain the data from the companion website of Stock and Watson (2011).
 The file contains the following variables:
@@ -35,7 +36,8 @@ history}
 \item{condo}{indicator for unit is a condominium}
 \item{ltv_med}{indicator for medium loan to property value ratio [.80, .95]}
 \item{ltv_high}{indicator for high loan to property value ratio >.95}
-}}
+}
+}
 \source{
 Munnell, Alicia, Geoffrey Tootell, Lynn Browne, and James McEneaney,
 "Mortgage Lending in Boston: Interpreting HMDA Data", The American Economic

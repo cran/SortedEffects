@@ -4,13 +4,30 @@
 \alias{ca}
 \title{Empirical Classification Analysis (CA) and Inference}
 \usage{
-ca(fm, data, method = c("ols", "logit", "probit", "QR"),
-  var_type = c("binary", "continuous", "categorical"), var, compare,
-  subgroup = NULL, samp_weight = NULL, taus = c(5:95)/100, u = 0.1,
-  interest = c("moment", "dist"), t = c(1, 1, rep(0, dim(data)[2] -
-  2)), cl = c("both", "diff"), cat = NULL, alpha = 0.1, b = 500,
-  parallel = FALSE, ncores = detectCores(), seed = 1, bc = TRUE,
-  range_cb = c(1:99)/100, boot_type = c("nonpar", "weighted"))
+ca(
+  fm,
+  data,
+  method = c("ols", "logit", "probit", "QR"),
+  var_type = c("binary", "continuous", "categorical"),
+  var,
+  compare,
+  subgroup = NULL,
+  samp_weight = NULL,
+  taus = c(5:95)/100,
+  u = 0.1,
+  interest = c("moment", "dist"),
+  t = c(1, 1, rep(0, dim(data)[2] - 2)),
+  cl = c("both", "diff"),
+  cat = NULL,
+  alpha = 0.1,
+  b = 500,
+  parallel = FALSE,
+  ncores = detectCores(),
+  seed = 1,
+  bc = TRUE,
+  range_cb = c(1:99)/100,
+  boot_type = c("nonpar", "weighted")
+)
 }
 \arguments{
 \item{fm}{Regression formula}

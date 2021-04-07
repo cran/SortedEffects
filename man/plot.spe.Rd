@@ -5,8 +5,15 @@
 \title{Plot output of \code{\link{spe}} command. The x-axis limits are set to the
 specified range of percentile index.}
 \usage{
-\method{plot}{spe}(x, ylim = NULL, main = NULL, sub = NULL,
-  xlab = "Percentile Index", ylab = "Sorted Effects", ...)
+\method{plot}{spe}(
+  x,
+  ylim = NULL,
+  main = NULL,
+  sub = NULL,
+  xlab = "Percentile Index",
+  ylab = "Sorted Effects",
+  ...
+)
 }
 \arguments{
 \item{x}{Output of \code{\link{spe}} command.}

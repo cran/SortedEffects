@@ -4,9 +4,19 @@
 \alias{plot.subpop}
 \title{Plot 2-dimensional projections of variables in interest.}
 \usage{
-\method{plot}{subpop}(x, varx, vary, xlim = NULL, ylim = NULL,
-  main = NULL, sub = NULL, xlab = NULL, ylab = NULL,
-  overlap = FALSE, ...)
+\method{plot}{subpop}(
+  x,
+  varx,
+  vary,
+  xlim = NULL,
+  ylim = NULL,
+  main = NULL,
+  sub = NULL,
+  xlab = NULL,
+  ylab = NULL,
+  overlap = FALSE,
+  ...
+)
 }
 \arguments{
 \item{x}{Output of \code{\link{subpop}} command.}

@@ -4,7 +4,8 @@
 \name{wage2015}
 \alias{wage2015}
 \title{Wage Data}
-\format{Consists of white, non-hispanic individuals aging from 25 to 64 and
+\format{
+Consists of white, non-hispanic individuals aging from 25 to 64 and
 working more than 35 hours per week during at least 50 weeks of the year.
 Excludes self-employed, individuals living in group quarters; individuals in
 the military, agricultural or private household sectors; individuals with
@@ -34,7 +35,8 @@ educ = 12), sc (some college: 13<=years of educ<=15), cg (college:
 divorced, and nevermarried.}
 \item{region}{Regions with 4 categories: mw (midwest), so (south),
 we (west), ne (northeast).}
-}}
+}
+}
 \source{
 U.S. March Supplement of the Current Population Survey (CPS) in 2015.
 }

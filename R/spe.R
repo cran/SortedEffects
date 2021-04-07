@@ -123,17 +123,17 @@ spe <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
     data$.w <- samp_weight
     # create bootstrap sample, the "indices" is automatically provided by the
     # boot package, provides the sampling with replacement part of bootstrap
-    data_bs <- data[indices, ]
+    data <- data[indices, ]
     # set up a progress bar to document the bootstrap progress
     setpb(pb, rep_count)
     rep_count <<- rep_count + 1
-    output_bs <- peestimate(fm, data_bs, samp_weight = data_bs$.w, var_type,
+    output_bs <- peestimate(fm, data, samp_weight = data$.w, var_type,
                             var, compare, method, subgroup, taus)
     est_pe_bs <- output_bs$pe_est
     # scalar, length = 1
     est_ape_bs <- mean(est_pe_bs)
     # length = length(us)
-    est_spe_bs <- wtd.quantile(est_pe_bs, data_bs$.w, us)
+    est_spe_bs <- wtd.quantile(est_pe_bs, data$.w, us)
     if (!is.null(subgroup)) {
       est_pesub_bs <- output_bs$pesub_est
       pesub_w_bs <- output_bs$samp_weight_sub
@@ -146,7 +146,7 @@ spe <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
     } else {
       return(c(est_ape_bs, est_spe_bs))
     }
-    data_bs$.w <- NULL
+    data$.w <- NULL
   }
   # The resampling is wrt sample weight, so the data_rg function does that
   data_rg <- function(data, mle) {
@@ -158,7 +158,7 @@ spe <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
     data$.w <- weight
     return(data)
   }
-  # Implements nonparametric bootstrap for quantile regression
+  # Implements nonparametric bootstrap
   data_non <- function(data, mle) {
     n <- dim(data)[1]
     multipliers <- as.vector(table(factor(sample(n,n,replace = T),
@@ -202,7 +202,10 @@ spe <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
       cat(paste("Using", ncores, "CPUs now.\n"))
       # set up a progress bar
       pb <- startpb(min = 0, max = b)
-      result_boot <- boot(data = data, statistic = stat_boot_noweight,
+      #result_boot <- boot(data = data, statistic = stat_boot_noweight,
+      #                    parallel = "multicore", ncpus = ncores, R = b)
+      result_boot <- boot(data = data, statistic = stat_boot_weight,
+                          sim = "parametric", ran.gen = data_non, mle = 0,
                           parallel = "multicore", ncpus = ncores, R = b)
       closepb(pb)
     } else {

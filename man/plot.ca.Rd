@@ -4,8 +4,7 @@
 \alias{plot.ca}
 \title{Distribution plotting}
 \usage{
-\method{plot}{ca}(x, var, main = NULL, sub = NULL, xlab = NULL,
-  ylab = NULL, ...)
+\method{plot}{ca}(x, var, main = NULL, sub = NULL, xlab = NULL, ylab = NULL, ...)
 }
 \arguments{
 \item{x}{Output of \code{\link{ca}} command with
