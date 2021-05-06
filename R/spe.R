@@ -112,68 +112,42 @@ spe <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
   }
   # -----3. Bootstrap Samples
   #  statistic in one bootstrap for SPE
-  #  Need to consider two scenarios: whether the regression is weighted. If not
-  #  then use nonpar boot, if yes use exchangeably weighted boot. Turns out the
-  #  statistic functions for boot are a bit different for these two scenarios,
-  #  so I write two stastistics functions.
+  #  Accommodate two types of bootstraps:
+  #  (1) Nonparametric: draw multinomial weights
+  #  (2) Weighted:      draw exponential weights
 
   # set a bootstrap counting variable for the purpose of showing a progress bar
   rep_count <- 1
-  stat_boot_noweight <- function(data, indices) {
-    data$.w <- samp_weight
-    # create bootstrap sample, the "indices" is automatically provided by the
-    # boot package, provides the sampling with replacement part of bootstrap
-    data <- data[indices, ]
-    # set up a progress bar to document the bootstrap progress
-    setpb(pb, rep_count)
-    rep_count <<- rep_count + 1
-    output_bs <- peestimate(fm, data, samp_weight = data$.w, var_type,
-                            var, compare, method, subgroup, taus)
-    est_pe_bs <- output_bs$pe_est
-    # scalar, length = 1
-    est_ape_bs <- mean(est_pe_bs)
-    # length = length(us)
-    est_spe_bs <- wtd.quantile(est_pe_bs, data$.w, us)
-    if (!is.null(subgroup)) {
-      est_pesub_bs <- output_bs$pesub_est
-      pesub_w_bs <- output_bs$samp_weight_sub
-      # length = 1
-      est_apesub_bs <- mean(est_pesub_bs)
-      # length(us)
-      est_spesub_bs <- wtd.quantile(est_pesub_bs, pesub_w_bs, us)
-      # Each has length: 1+length(us)
-      return(c(est_apesub_bs, est_spesub_bs))
-    } else {
-      return(c(est_ape_bs, est_spe_bs))
-    }
-    data$.w <- NULL
-  }
-  # The resampling is wrt sample weight, so the data_rg function does that
+
+  # The resampling function for weighted bootstrap
   data_rg <- function(data, mle) {
     n <- dim(data)[1]
     # Exponential weights
     multipliers  <- rexp(n)
     # Sampling weight of data.bs
     weight <- (multipliers/sum(multipliers)) * samp_weight
-    data$.w <- weight
+    data$.w <- weight/mean(weight)
     return(data)
   }
-  # Implements nonparametric bootstrap
+  # Resampling function for nonparametric bootstrap
+  # Note: nonpar is a special type of weighted bootstrap with multinomial weight
   data_non <- function(data, mle) {
     n <- dim(data)[1]
-    multipliers <- as.vector(table(factor(sample(n,n,replace = T),
+    multipliers <- as.vector(table(factor(sample(n, n, replace = T),
                                           levels = c(1:n))))
     # Sampling weight of data.bs
     weight <- (multipliers/sum(multipliers)) * samp_weight
+    # Divide by the mean of weight to stablize bootstrap estimate
+    weight <- weight/mean(weight)
     data$.w <- weight
     return(data)
   }
-  # The following is boot stat function for exchageably weighted boot
+  # Function that computes bootstrap statistics in each draw
   stat_boot_weight <- function(data) {
     setpb(pb, rep_count)
     rep_count <<- rep_count + 1
-    output_bs <- peestimate(fm, data, samp_weight = data$.w, var_type, var,
-                            compare, method, subgroup, taus)
+    output_bs <- suppressWarnings(peestimate(fm, data, samp_weight = data$.w, var_type, var,
+                            compare, method, subgroup, taus))
     est_pe_bs <- output_bs$pe_est
     est_ape_bs <- mean(est_pe_bs) # scalar, length = 1
     if (method != "QR") {
@@ -193,31 +167,21 @@ spe <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
       return(c(est_ape_bs, est_spe_bs))
     }
   }
+
   # Use boot command
   set.seed(seed)
   if (parallel == FALSE) ncores <- 1
   if (boot_type == "nonpar") {
-    if (method != "QR") {
-      # print a message showing how many cores are used
-      cat(paste("Using", ncores, "CPUs now.\n"))
-      # set up a progress bar
-      pb <- startpb(min = 0, max = b)
-      #result_boot <- boot(data = data, statistic = stat_boot_noweight,
-      #                    parallel = "multicore", ncpus = ncores, R = b)
-      result_boot <- boot(data = data, statistic = stat_boot_weight,
-                          sim = "parametric", ran.gen = data_non, mle = 0,
-                          parallel = "multicore", ncpus = ncores, R = b)
-      closepb(pb)
-    } else {
-      data$.w <- samp_weight
-      cat(paste("Using", ncores, "CPUs now.\n"))
-      pb <- startpb(min = 0, max = b)
-      result_boot <- boot(data = data, statistic = stat_boot_weight,
-                          sim = "parametric", ran.gen = data_non, mle = 0,
-                          parallel = "multicore", ncpus = ncores, R = b)
-      data$.w <- NULL
-      closepb(pb)
-    }
+    data$.w <- samp_weight
+    # print a message showing how many cores are used
+    cat(paste("Using", ncores, "CPUs now.\n"))
+    # set up a progress bar
+    pb <- startpb(min = 0, max = b)
+    result_boot <- boot(data = data, statistic = stat_boot_weight,
+                        sim = "parametric", ran.gen = data_non, mle = 0,
+                        parallel = "multicore", ncpus = ncores, R = b)
+    data$.w <- NULL
+    closepb(pb)
   } else if (boot_type == "weighted") {
     data$.w <- samp_weight
     cat(paste("Using", ncores, "CPUs now.\n"))

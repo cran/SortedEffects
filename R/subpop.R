@@ -95,8 +95,8 @@ subpop <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
   var_type <- match.arg(var_type)
   boot_type <- match.arg(boot_type)
   # ------ 1. Call to estimate PE and PEsub
-  output <- peestimate(fm, data, samp_weight, var_type, var, compare, method,
-                       subgroup, taus)
+  output <- suppressWarnings(peestimate(fm, data, samp_weight, var_type, var, compare, method,
+                       subgroup, taus))
   pe_est <- output$pe_est
   # ----- 2. u-most and least Affected Groups
   if (method != "QR") {
@@ -151,29 +151,7 @@ subpop <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
   # ---------------------------- 3. Bootstrap Samples -------------------------
   # set a bootstrap counting variable for the purpose of showing a progress bar
   rep_count <- 1
-  # 1. Statistics in one boot if no weight is specifed
-  boot_stat_noweight <- function(data, indices){
-    data$.w <- samp_weight
-    data <- data[indices, ]
-    # set up a progress bar to document the bootstrap progress
-    setpb(pb, rep_count)
-    rep_count <<- rep_count + 1
-    out_bs <- peestimate(fm, data, samp_weight = data$.w, var_type, var,
-                         compare, method, subgroup, taus)
-    pe_est_bs <- out_bs$pe_est
-    effect_high_bs <- wtd.quantile(pe_est_bs, data$.w, 1 - u) # scalar
-    effect_low_bs <- wtd.quantile(pe_est_bs, data$.w, u) # scalar
-    if (!is.null(subgroup)) {
-      pesub_est_bs <- out_bs$pesub_est
-      pesub_w <- out_bs$samp_weight_sub
-      effect_sub_high_bs <- wtd.quantile(pesub_est_bs, pesub_w, 1 - u)
-      effect_sub_low_bs <- wtd.quantile(pesub_est_bs, pesub_w, u)
-      return(c(effect_sub_high_bs, effect_sub_low_bs, pesub_est_bs))
-    } else {
-      return(c(effect_high_bs, effect_low_bs, pe_est_bs))
-    }
-  }
-  # 2. Stats in one boot if weight is specified
+  # Resampling function for weighted bootstrap
   data_rg <- function(data, mle){
     n <- dim(data)[1]
     # Exponential weights
@@ -183,7 +161,7 @@ subpop <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
     data$.w <- weight
     return(data)
   }
-  # Implements nonparametric bootstrap for quantile regression
+  # Resampling function for nonparametric bootstrap
   data_non <- function(data, mle){
     n <- dim(data)[1]
     multipliers <- as.vector(table(factor(sample(n,n,replace = T),
@@ -193,13 +171,13 @@ subpop <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
     data$.w <- weight
     return(data)
   }
-
+  # Function that computes bootstrap statistics in each draw
   boot_stat_weight <- function(data){
     # set up a progress bar to document the bootstrap progress
     setpb(pb, rep_count)
     rep_count <<- rep_count + 1
-    out_bs <- peestimate(fm, data, samp_weight = data$.w, var_type, var,
-                         compare, method, subgroup, taus)
+    out_bs <- suppressWarnings(peestimate(fm, data, samp_weight = data$.w, var_type, var,
+                         compare, method, subgroup, taus))
     pe_est_bs <- out_bs$pe_est
     if (method == "QR") {
       effect_high_bs <- wtd.quantile(pe_est_bs, matrix(data$.w, ncol = 1,
@@ -226,24 +204,14 @@ subpop <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
   set.seed(seed)
   if (parallel == FALSE) ncores <- 1
   if (boot_type == "nonpar") {
-    if (method != "QR") {
-      # print a message showing how many cores are used
-      cat(paste("Using", ncores, "CPUs now.\n"))
-      # set up a progress bar
-      pb <- startpb(min = 0, max = b)
-      result_boot <- boot(data = data, statistic = boot_stat_noweight,
-                          parallel = "multicore", ncpus = ncores, R = b)
-      closepb(pb)
-    } else{
-      data$.w <- samp_weight
-      cat(paste("Using", ncores, "CPUs now.\n"))
-      pb <- startpb(min = 0, max = b)
-      result_boot <- boot(data = data, statistic = boot_stat_weight,
-                          sim = "parametric", ran.gen = data_non, mle = 0,
-                          parallel = "multicore", ncpus = ncores, R = b)
-      closepb(pb)
-      data$.w <- NULL
-    }
+    data$.w <- samp_weight
+    cat(paste("Using", ncores, "CPUs now.\n"))
+    pb <- startpb(min = 0, max = b)
+    result_boot <- boot(data = data, statistic = boot_stat_weight,
+                        sim = "parametric", ran.gen = data_non, mle = 0,
+                        parallel = "multicore", ncpus = ncores, R = b)
+    closepb(pb)
+    data$.w <- NULL
   } else if (boot_type == "weighted") {
     data$.w <- samp_weight
     cat(paste("Using", ncores, "CPUs now.\n"))
@@ -254,6 +222,7 @@ subpop <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
     closepb(pb)
     data$.w <- NULL
   }
+
   # -----5. Analysis for the subpopulation -=
   if (is.null(subgroup)) {
     # (a) PE
@@ -280,6 +249,7 @@ subpop <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
   output <- structure(output, class = "subpop")
   return(output)
 }
+
 # -----Two Auxiliary Functions
 # Implementing algorithm: Output is confidence set indicator
 # Most affected group
@@ -460,6 +430,6 @@ plot.subpop <- function(x, varx, vary, xlim = NULL, ylim = NULL, main = NULL,
              pch = 1, lwd = 2)
     }
   }
-  legend('topleft', c(paste0(u*100,"% Most"), paste0(u*100,"% Least")),
+  legend('topleft', c(paste0(u*100, "% Most"), paste0(u*100, "% Least")),
          col = c(4, 'lightblue1'), pch = c(20, 1), horiz = F, bty = 'n')
 }

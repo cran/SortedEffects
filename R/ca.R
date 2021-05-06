@@ -397,146 +397,7 @@ ca <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
   #  ----- 4. The Bootstrap Statistics Function
   # set a bootstrap counting variable for the purpose of showing a progress bar
   rep_count <- 1
-  # No weight bootstrap
-  stat_boot_CA_noweight <- function(data, indices){
-    data$.w <- samp_weight
-    data <- data[indices, ]
-    # set up a progress bar to document the bootstrap progress
-    setpb(pb, rep_count)
-    rep_count <<- rep_count + 1
-    output_bs <- suppressWarnings(peestimate(fm, data, samp_weight = data$.w,
-                                             var_type, var, compare, method,
-                                             subgroup, taus))
-    pe_est <- output_bs$pe_est
-    if (method != "QR") {
-      if (is.null(subgroup)) {
-        # Threshold Values for u-most/least Affected
-        effect_high <- wtd.quantile(pe_est, data$.w, 1 - u)
-        effect_low <- wtd.quantile(pe_est, data$.w, u)
-        if (interest == "moment") {
-          mat <- subsetting(data, vars)
-          mat$.w <- data$.w
-          high_affected <- mat[pe_est >= effect_high, ]
-          low_affected <- mat[pe_est <= effect_low, ]
-        } else if (interest == "dist") {
-          # Two affected groups
-          high_affected <- data[pe_est >= effect_high, ]
-          low_affected <- data[pe_est <= effect_low, ]
-        }
-      } else {
-        pesub_est <- output_bs$pesub_est
-        pesub_w <- output_bs$samp_weight_sub
-        # Threshold Values for u-most/least Affected
-        effect_high <- wtd.quantile(pesub_est, pesub_w, 1 - u)
-        effect_low <- wtd.quantile(pesub_est, pesub_w, u)
-        subdata <- data[subgroup, ]
-        if (interest == "moment") {
-          vars2 <- c(vars, ".w")
-          mat_sub <- subsetting(subdata, vars2)
-          high_affected <- mat_sub[pesub_est >= effect_high, ]
-          low_affected <- mat_sub[pesub_est <= effect_low, ]
-        } else if (interest == "dist") {
-          high_affected <- subdata[pesub_est >= effect_high, ]
-          low_affected <- subdata[pesub_est <= effect_low, ]
-        }
-      }
-    } # QR requires special treatment due to stacking of quantile indices
-    if (method == "QR") {
-      # Full sample: use PE_est
-      if (is.null(subgroup)) {
-        # Threshold Values for u-most/least Affected
-        effect_high <- wtd.quantile(pe_est, matrix(data$.w, ncol = 1,
-                                                   nrow = nrow(pe_est),
-                                                   byrow = FALSE), 1 - u)
-        effect_low <- wtd.quantile(pe_est, matrix(data$.w, ncol = 1,
-                                                  nrow = nrow(pe_est),
-                                                  byrow = FALSE), u)
-        if (interest == "moment") {
-          mat <- subsetting(data, vars)
-          mat$.w <- data$.w
-          mesh <- mat[rep(1:nrow(mat), times = length(taus)), ]
-          high_affected <- mesh[pe_est >= effect_high, ]
-          low_affected <- mesh[pe_est <= effect_low, ]
-        } else if (interest == "dist") {
-          mesh <- data[rep(1:nrow(data), times = length(taus)), ]
-          # Two Affected Groups
-          high_affected <- mesh[pe_est >= effect_high, ]
-          low_affected <- mesh[pe_est <= effect_low, ]
-        }
-      } else {
-        pesub_est <- output_bs$pesub_est
-        pesub_w <- output_bs$samp_weight_sub
-        # Subsample: use PEsub_est
-        # Threshold Values for u-most/least Affected
-        effect_high <- wtd.quantile(pesub_est, pesub_w, 1 - u)
-        effect_low <- wtd.quantile(pesub_est, pesub_w, u)
-        subdata <- data[subgroup, ]
-        if (interest == "moment") {
-          vars2 <- c(vars, ".w")
-          mat_sub <- subsetting(subdata, vars2)
-          mesh <- mat_sub[rep(1:nrow(mat_sub), times = length(taus)), ]
-          high_affected <- mesh[pesub_est >= effect_high, ]
-          low_affected <- mesh[pesub_est <= effect_low, ]
-        } else if (interest == "dist") {
-          mesh <- subdata[rep(1:nrow(subdata), times = length(taus)), ]
-          # Two Affected Groups
-          high_affected <- mesh[pesub_est >= effect_high, ]
-          low_affected <- mesh[pesub_est <= effect_low, ]
-        }
-      }
-    }
-    # Obtain the sampling weight for each group (If samp_weight = NULL, then
-    # these two vars are NULL)
-    weight_high <- high_affected$.w
-    weight_low <- low_affected$.w
-    # Remove the .w
-    high_affected$.w <- NULL
-    low_affected$.w <- NULL
-    data$.w <- NULL
-    if (interest == "moment") {
-      # weighted mean of var in interest for the u-least/most affected groups
-      interest_high <- apply(as.matrix(high_affected), 2,
-                             weighted.mean, weights = weight_high, na.rm = TRUE)
-      interest_low <- apply(as.matrix(low_affected), 2,
-                            weighted.mean, weights = weight_low, na.rm = TRUE)
-      varname <- colnames(as.matrix(high_affected))
-      # Average of var in interest for the two groups (m * 2), where m is
-      # number of variables in interest
-      est_interest <- cbind(interest_high, interest_low)
-      # est_interest <- cbind(interest_low, interest_high)
-      # Hypothesis in interest (m * L matrix)
-      # Component (a, b) meaning: b-th hypothesis statistics for a-th variable
-      # in interest
-      H <- est_interest %*% cl
-      # Reshape: 1 * mL
-      H <- matrix(H, nrow = 1)
-      # Assign names
-      m <- length(varname)
-      colnames(H) <- rep(varname, length(H)/m)
-    }
-    if (interest == "dist") {
-      fun <- function(a){ # a is a name component in the list
-        if (is.null(samp_weight)) {
-          # Take care of no samp weight scenario
-          weight_low <- rep(1, length(unlist(low_affected[, colnames(a)[1]])))
-          weight_high <- rep(1, length(unlist(high_affected[, colnames(a)[1]])))
-        }
-        cdf_low <- lapply(a[, 1], wcdf, x = unlist(low_affected[, colnames(a)[1]]),
-                          w = weight_low) # low group cdf
-        cdf_high <- lapply(a[, 2], wcdf, x = unlist(high_affected[, colnames(a)[[1]]]),
-                           w = weight_high) # high group cdf
-        output <- cbind(cdf_low, cdf_high)
-      }
-      # Call 'fun' to calculate wcdfs for both groups for all vars in interest
-      # (least group 1st col, most group 2nd col)
-      cdf_bundle <- lapply(temp, fun)
-      index <- lengths(cdf_bundle)
-      # Reshape
-      H <- lapply(cdf_bundle, matrix, nrow = 1)
-      H <- unlist(list.cbind(H)) # estimates of weighted cdf
-    }
-    out <- H
-  }
+  # DGP for weighted bootstrap
   data_rg <- function(data, mle){
     n <- dim(data)[1]
     # Exponential weights
@@ -550,16 +411,17 @@ ca <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
     data$.w <- weight
     return(data)
   }
-  # Implements nonparametric bootstrap for quantile regression
+  # DGP for nonparametric bootstrap
   data_non <- function(data, mle){
     n <- dim(data)[1]
-    multipliers <- as.vector(table(factor(sample(n,n,replace = T),
+    multipliers <- as.vector(table(factor(sample(n, n, replace = T),
                                           levels = c(1:n))))
     # Sampling weight of data.bs
     weight <- (multipliers/sum(multipliers)) * samp_weight * 20000
     data$.w <- weight
     return(data)
   }
+  # Function that computes bootstrap statistics in each draw
   stat_boot_CA_weight <- function(data){
     # set up a progress bar to document the bootstrap progress
     setpb(pb, rep_count)
@@ -695,24 +557,16 @@ ca <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
   set.seed(seed)
   if (parallel == FALSE) ncores <- 1
   if (boot_type == "nonpar") {
-    if (method != "QR") {
-      # print a message showing how many cores are used
-      cat(paste("Using", ncores, "CPUs now.\n"))
-      # set up a progress bar
-      pb <- startpb(min = 0, max = b)
-      result_boot <- boot(data = data, statistic = stat_boot_CA_noweight,
-                          parallel = "multicore", ncpus = ncores, R = b)
-      closepb(pb)
-    } else {
-      data$.w <- samp_weight
-      cat(paste("Using", ncores, "CPUs now.\n"))
-      pb <- startpb(min = 0, max = b)
-      result_boot <- boot(data = data, statistic = stat_boot_CA_weight,
-                          sim = "parametric", ran.gen = data_non, mle = 0,
-                          parallel = "multicore", ncpus = ncores, R = b)
-      closepb(pb)
-      data$.w <- NULL
-    }
+    # print a message showing how many cores are used
+    data$.w <- samp_weight
+    cat(paste("Using", ncores, "CPUs now.\n"))
+    # set up a progress bar
+    pb <- startpb(min = 0, max = b)
+    result_boot <- boot(data = data, statistic = stat_boot_CA_weight,
+                        sim = "parametric", ran.gen = data_non, mle = 0,
+                        parallel = "multicore", ncpus = ncores, R = b)
+    closepb(pb)
+    data$.w <- NULL
   } else if (boot_type == "weighted") {
     data$.w <- samp_weight
     cat(paste("Using", ncores, "CPUs now.\n"))
@@ -1078,6 +932,6 @@ plot.ca <- function(x, var, main = NULL, sub = NULL, xlab = NULL,
   legend(x = "topleft", col = c(4, 2, "darkcyan","tomato"),
          lwd = c(1, 1, 5, 5), lty = c(1, 1, 1, 1), bty = 'n',
          legend = c("Least Affected","Most Affected",
-                    paste0((1 - alpha)*100,"% CB"),
-                    paste0((1 - alpha)*100,"% CB")))
+                    paste0((1 - alpha)*100, "% CB"),
+                    paste0((1 - alpha)*100, "% CB")))
 }

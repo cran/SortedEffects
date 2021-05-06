@@ -45,6 +45,8 @@ peestimate <- function(fm, data, samp_weight = NULL, var_type, var, compare,
   samp_weight_t <- samp_weight[subcat]
   # ------1. Fit a model under a chosen regression method--------------
   if (method == "logit") {
+  #  model_fit <- glm(fm, data = data, weights = samp_weight,
+  #                   family = binomial(link = "logit"))
     model_fit <- glm(fm, data = data, weights = samp_weight,
                      family = binomial(link = "logit"))
   }
