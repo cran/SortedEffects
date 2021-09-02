@@ -167,6 +167,7 @@ ca <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
   }
   # ----- Replace Null Weight Specification
   if (is.null(samp_weight)) samp_weight <- rep(1, dim(data)[1])
+  samp_weight <- samp_weight/mean(samp_weight) # renormalize
   # ----- Matching Arguments
   method <- match.arg(method)
   var_type <- match.arg(var_type)

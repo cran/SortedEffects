@@ -1,9 +1,11 @@
 NEWS
 ================
 Shuowen Chen
-5/5/2021
+8/31/2021
 
-# SortedEffects 1.4.0.
+# SortedEffects 1.5.0.
+Changes from SortedEffects 1.4.0. Renormalize the weights for stable estimates using glm.  
+
 Changes from SortedEffects 1.3.0. For nonparametric bootstrap, we use the multinomial weight resampling to produce more stable bootstrap estimates. 
 
 Changes from SortedEffects 1.2.0. The spe function in the 1.2.0 version produces far wider nonparametric bootstrap confidence bands for some specifications. We fix that issue. 
