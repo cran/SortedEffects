@@ -1,8 +1,8 @@
-b4971b4a3de1c571a66ad17cdb679b72 *DESCRIPTION
+75d619474bee0aad207f93641dc7756d *DESCRIPTION
 28e1f269586a131585d756769f27bc43 *LICENSE
-e41cf41f4c646365fe19373266b8d206 *NAMESPACE
-38fe7750f3b1a76e1e08ccc787d5b60b *NEWS.md
-747f5bc87442d5e9c274a0702fdfe83b *R/ca.R
+9234cc926a3d5f2d9b4436dbb6e45c8b *NAMESPACE
+bc85111fb68503b19da86476f67f1237 *NEWS.md
+03aed2bd58dfee28a0a3bc37eb370ca5 *R/ca.R
 65097ebf27b7c36e40174f7049ef077b *R/data.R
 c983899025547ac5eb70bd661b26e627 *R/peestimate.R
 a3864fa1b3fb08af813557cc0d2137e5 *R/spe.R
@@ -13,7 +13,7 @@ f1fb62bc83350bf550749e6c8e2d6366 *data/mortgage.rda
 111f84abe21979a9f82c6a6faf707ba0 *data/wage2015.rda
 a7435982746744c18aea8a6c675b4695 *inst/doc/SortedEffects.R
 195ee16a01ca63779ed975d3ed2cea4f *inst/doc/SortedEffects.Rmd
-0b8f6bf82ddcb670332298d6f31bbacb *inst/doc/SortedEffects.html
+739c3e644c5ed473885516bdbe0084bf *inst/doc/SortedEffects.html
 1436ac8843bb37fd063cb7ea87326581 *man/ca.Rd
 d172652553bae33990ebcc17d17e1f78 *man/figures/README-pressure-1.png
 a707d81ecc4c45eb7681d61f17050a2e *man/mortgage.Rd

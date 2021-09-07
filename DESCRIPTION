@@ -2,7 +2,7 @@ Package: SortedEffects
 Type: Package
 Title: Estimation and Inference Methods for Sorted Causal Effects and
         Classification Analysis
-Version: 1.5.0
+Version: 1.6.0
 Authors@R: 
     c(
     person("Shuowen", "Chen", role = c("aut", "cre"), email = "swchen@bu.edu"),
@@ -18,15 +18,15 @@ Description: Implements the estimation and inference methods for sorted causal e
     classification analysis as in Chernozhukov, Fernandez-Val and Luo (2018) <doi:10.3982/ECTA14415>.
 License: MIT + file LICENSE
 Depends: R (>= 2.10)
-URL: https://github.com/yuqimemeda/SortedEffects
+URL: https://github.com/shuowencs/SortedEffects
 Encoding: UTF-8
 LazyData: true
-Imports: boot, graphics, Hmisc, pbapply, parallel, quantreg, rlist,
-        SparseM, stats, dummies
+Imports: boot, graphics, Hmisc, pbapply, parallel, quantreg, SparseM,
+        stats, dummies
 RoxygenNote: 7.1.1
 Suggests: knitr, rmarkdown
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2021-09-01 00:35:09 UTC; shuowenchen
+Packaged: 2021-09-06 23:30:03 UTC; shuowenchen
 Repository: CRAN
-Date/Publication: 2021-09-02 05:40:05 UTC
+Date/Publication: 2021-09-07 07:00:13 UTC
