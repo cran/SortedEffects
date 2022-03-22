@@ -142,8 +142,7 @@
 #' cl = "diff", t = t, b = 50, bc = TRUE)
 #' @importFrom boot boot
 #' @importFrom Hmisc wtd.quantile wtd.mean
-#' @importFrom stats quantile rexp qnorm pnorm
-#' @importFrom dummies dummy.data.frame
+#' @importFrom stats quantile rexp qnorm pnorm model.frame model.matrix
 #' @importFrom parallel detectCores
 #' @importFrom pbapply setpb startpb closepb
 #' @export
@@ -799,7 +798,7 @@ ca <- function(fm, data, method = c("ols", "logit", "probit", "QR"),
   }
 }
 
-# ------ Three Auxiliary Functions
+# ------ Five Auxiliary Functions
 # 1. Function to obtain empirical p-values
 epvals <- function(z, zs){
   return(mean(zs > z))
@@ -815,6 +814,92 @@ tempf <- function(.data, fun, ...) {
   do.call(what = fun, args = as.list(.data), ...)
 }
 list_cbind <- function(.data) tempf(.data, "cbind")
+# 4. A function to generate dummy variables
+# a hard copy of the dummy function in dummies package, which is about to be archived
+dummy <- function( x, data=NULL, sep="", drop=TRUE, fun=as.integer, verbose = FALSE ) {
+  # HANDLE IF DATA IS MISSING.
+  if( is.null(data) ) {
+    name <- as.character( sys.call(1) )[2]
+    name <- sub( "^(.*\\$)", "", name )    # REMOVE prefix e.f
+    name <- sub( "\\[.*\\]$", "", name )   # REMOVE suffix
+  } else {
+    if( length(x) > 1 ) stop( "More than one variable provided to produce dummy variable." )
+    name <- x
+    x <- data[ , name]
+  }
+  # CHANGE TO FACTOR: KEEP LEVELS?
+  if( drop == FALSE && class(x) == "factor" ) {
+    x <- factor( x, levels=levels(x), exclude=NULL )
+  } else {
+    x<-factor( x, exclude=NULL )
+  }
+  # TRAP FOR ONE LEVEL :
+  #   model.matrix does not work on factor w/ one level.  Here we trap for the spacial case.
+  if( length(levels(x))<2 ) {
+
+    if( verbose ) warning( name, " has only 1 level. Producing dummy variable anyway." )
+
+    return(
+      matrix(
+        rep(1,length(x)),
+        ncol=1,
+        dimnames=list( rownames(x), c( paste( name, sep, x[[1]], sep="" ) ) )
+      )
+    )
+  }
+  # GET THE MODEL MATRIX
+  mm <- model.matrix( ~ x - 1, model.frame( ~ x - 1 ),  contrasts=FALSE )  # vec
+  colnames.mm <- colnames(mm)
+
+  if( verbose ) cat( " ", name, ":", ncol(mm), "dummy varibles created\n" )
+
+  mm <- matrix( fun(mm), nrow=nrow(mm), ncol=ncol(mm), dimnames=list(NULL, colnames.mm) )
+
+
+  # Replace the column names 'x'... with the true variable name and a seperator
+  colnames(mm) <- sub( "^x", paste( name, sep, sep="" ), colnames(mm) )
+  if(! is.null(row.names(data)) ) rownames(mm) <- rownames(data)
+  return(mm)
+}
+# 5. a function to generate matrix of dummies
+# also a hard copy of the dummies package, which is about to be archived
+dummy.data.frame <- function( data, names=NULL, omit.constants = TRUE, dummy.classes=getOption("dummy.classes"), all=TRUE, ... ) {
+
+  # Initialize the data.frame
+  df<-data.frame( row.names=row.names(data) )
+  new.attr <- list()  # Track location of dummy variables
+
+  for( nm in names(data) ) {
+
+    # cat( nm )
+    old.attr <- attr(df,'dummies')
+
+    if(
+      nm %in% names ||
+      ( is.null(names) && ( dummy.classes == "ALL" || class(data[,nm]) %in% dummy.classes ) )
+    ) {
+
+      dummies <- dummy( nm, data, ... )
+
+      # OMIT CONSTANT COLUMNS:
+      #  Variables that are constant will return a matrix with one column
+      if( ncol(dummies) == 1  & omit.constants ) {
+        dummies <- matrix( nrow=nrow(data), ncol=0 )
+      }
+
+      if( ncol(dummies)>0 ) new.attr[[nm]] <- (ncol(df)+1):( ncol(df)+ncol(dummies) )
+
+    } else {
+      if( ! all ) next()
+      dummies <- data[,nm, drop=FALSE ]
+    }
+
+    df <- cbind(df, dummies)
+
+  }
+  attr( df, 'dummies' ) <- new.attr
+  return(df)
+}
 
 # ----- Summary (Moments of specified variables in interest for least/most
 # affected groups) ------

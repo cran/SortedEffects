@@ -1,10 +1,12 @@
 NEWS
 ================
 Shuowen Chen
-9/6/2021
+3/21/2022
 
-# SortedEffects 1.6.0.
-Changes from SortedEffects 1.5.0. The previous version imports a package rlist. Upon receving a warning from CRAN about reverse dependencies, we revise the code so that the package no longer relies on rlist. 
+# SortedEffects 1.7.0.
+Changes from SortedEffects 1.6.0. The previous version imports a package dummies. Upon receiving a warning from CRAN about reverse dependencies, we revise the code so that the package no longer has the dependency. 
+
+Changes from SortedEffects 1.5.0. The previous version imports a package rlist. Upon receiving a warning from CRAN about reverse dependencies, we revise the code so that the package no longer relies on rlist. 
 
 Changes from SortedEffects 1.4.0. Renormalize the weights for stable estimates using glm.  
 
